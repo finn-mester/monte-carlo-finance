@@ -1,6 +1,6 @@
 # Monte Carlo Methods in Finance: option pricing and risk measurement
 
-[![Tests](https://github.com/<GITHUB_USERNAME>/monte-carlo-finance/actions/workflows/tests.yml/badge.svg)](https://github.com/<GITHUB_USERNAME>/monte-carlo-finance/actions/workflows/tests.yml)
+[![Tests](https://github.com/finn-mester/monte-carlo-finance/actions/workflows/tests.yml/badge.svg)](https://github.com/finn-mester/monte-carlo-finance/actions/workflows/tests.yml)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
@@ -44,7 +44,7 @@ A short runnable tour of the library is in [notebooks/demo.ipynb](notebooks/demo
 ## Quick start
 
 ```bash
-git clone https://github.com/<GITHUB_USERNAME>/monte-carlo-finance.git
+git clone https://github.com/finn-mester/monte-carlo-finance.git
 cd monte-carlo-finance
 python -m venv .venv
 source .venv/bin/activate              # Windows: .venv\Scripts\activate
