@@ -65,6 +65,22 @@ def simulate_terminal(
     rng = _get_rng(rng)
 
     Z = rng.standard_normal(n)
+    return terminal_from_normals(S0, r, sigma, T, Z, q=q)
+
+
+def terminal_from_normals(
+    S0: float,
+    r: float,
+    sigma: float,
+    T: float,
+    Z: np.ndarray,
+    q: float = 0.0,
+) -> np.ndarray:
+    """Map standard normal draws Z to terminal prices S_T (exact GBM solution).
+
+    Exposed separately so that estimators which need control over the normals
+    (e.g. antithetic variates, which reuse Z and -Z) share the same formula.
+    """
     drift = (r - q - 0.5 * sigma**2) * T
     diffusion = sigma * np.sqrt(T) * Z
     return S0 * np.exp(drift + diffusion)
