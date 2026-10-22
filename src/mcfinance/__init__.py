@@ -9,6 +9,22 @@ from .exotics_closed_form import (
     geometric_average_expectation,
 )
 from .gbm import simulate_paths, simulate_terminal
+from .risk import (
+    RiskResult,
+    basel_traffic_light,
+    cholesky_correlated_normals,
+    christoffersen_cc,
+    christoffersen_independence,
+    estimate_risk,
+    ewma_covariance,
+    historical,
+    kupiec_pof,
+    mc_normal,
+    mc_student_t,
+    parametric_normal,
+    portfolio_losses,
+    rolling_backtest,
+)
 from .pricing import MCResult, convergence_curve, payoff, price_european
 from .variance_reduction import (
     ControlVariateResult,
@@ -42,6 +58,20 @@ __all__ = [
     "path_averages",
     "price_asian",
     "price_barrier",
+    "RiskResult",
+    "cholesky_correlated_normals",
+    "ewma_covariance",
+    "portfolio_losses",
+    "parametric_normal",
+    "mc_normal",
+    "mc_student_t",
+    "historical",
+    "estimate_risk",
+    "rolling_backtest",
+    "kupiec_pof",
+    "christoffersen_independence",
+    "christoffersen_cc",
+    "basel_traffic_light",
 ]
 
 __version__ = "0.1.0"

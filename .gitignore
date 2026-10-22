@@ -16,3 +16,6 @@ venv/
 .vscode/
 .idea/
 .DS_Store
+
+# Market data (Yahoo Finance, not redistributed; regenerate with scripts/download_data.py)
+data/
