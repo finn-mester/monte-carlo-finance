@@ -185,3 +185,15 @@ Rolling 1-day forecasts from 2013-12-18 to 2026-10-20 (3,285 days). Each forecas
 - Historical simulation: VaR equals `np.quantile` of the losses of the raw returns, whatever the `use_mean` flag; ES is always at least VaR; weights must sum to 1.
 - Backtest statistics: Kupiec is 0 when the exception count equals its expectation, matches a hand-computed value (5 exceptions in 250 days at 1%) and rejects a wrong rate. Christoffersen rejects clustered exceptions but not spread-out ones. Edge cases (0 or only exceptions) are handled, and traffic-light boundaries are checked.
 - On i.i.d. normal data the rolling backtest is calibrated (Kupiec not rejected), and a crash on day $t$ does not change the forecast for day $t$ (no look-ahead).
+
+## Output files
+
+Written by the script to [`results/`](../results):
+
+- [`part4_data_summary.csv`](../results/part4_data_summary.csv): per-asset and portfolio summary statistics.
+- [`part4_correlation.csv`](../results/part4_correlation.csv): correlation matrix.
+- [`part4_var_es_1day.csv`](../results/part4_var_es_1day.csv): 1-day VaR and ES on the last date.
+- [`part4_var_es_10day.csv`](../results/part4_var_es_10day.csv): 10-day 99% VaR and ES.
+- [`part4_student_t_nu.csv`](../results/part4_student_t_nu.csv): Student-t sensitivity to nu.
+- [`part4_mc_uncertainty.csv`](../results/part4_mc_uncertainty.csv): MC normal uncertainty over 100 repetitions.
+- [`part4_backtest.csv`](../results/part4_backtest.csv): backtest statistics per method and level.

@@ -73,3 +73,9 @@ Additional checks produced by the same script:
 - European exercise only. American options need methods such as Longstaff-Schwartz.
 - The confidence interval relies on the central limit theorem. It is approximate for small $n$ or for heavy-tailed payoffs.
 - Pseudo-random numbers come from NumPy's PCG64 generator. Results are reproducible for a given seed and NumPy version.
+
+## Output files
+
+Written by the script to [`results/`](../results):
+
+- [`part1_pricing_table.csv`](../results/part1_pricing_table.csv): MC vs Black-Scholes pricing table.

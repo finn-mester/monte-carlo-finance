@@ -101,3 +101,10 @@ The combined estimator with 10,000 paths (standard error 0.0276) is more precise
 - Variance reduction lowers the constant, not the $1/\sqrt{n}$ rate. Quasi-Monte Carlo (low-discrepancy sequences) could improve the rate itself and is not covered.
 - The control-variate $\beta$ is estimated from the same sample (bias of order $1/n$).
 - Runtime measurements depend on the machine and on NumPy's implementation; only the ratios between methods are meaningful.
+
+## Output files
+
+Written by the script to [`results/`](../results):
+
+- [`part2_pricing_table.csv`](../results/part2_pricing_table.csv): at-the-money pricing table for the four methods.
+- [`part2_variance_reduction.csv`](../results/part2_variance_reduction.csv): variance reduction factors, timings and efficiency gains by strike.

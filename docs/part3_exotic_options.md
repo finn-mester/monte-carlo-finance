@@ -129,3 +129,13 @@ Two results in the full sweep behind Figure 7 are worth reporting as they are:
 - Closed forms: the geometric Asian with $m = 1$ equals Black-Scholes (call and put, with and without dividends), and the geometric Asian call decreases with $m$ and stays below the European call. The barrier formula matches an independent reflection-principle integration, satisfies in-out parity and tends to the vanilla as $H \to 0$. Invalid barriers ($H \ge S_0$, $H > K$) are rejected, and the BGK shift goes in the right direction.
 - Asian Monte Carlo: the geometric Asian is within 4 standard errors of its closed form, with 95% CI coverage in [0.92, 0.98]. The arithmetic Asian with one date equals the European MC price on the same draws; AM-GM holds pathwise ($A \ge G$); the arithmetic Asian is below the European call. The control variate agrees with plain MC and reduces the standard error more than tenfold.
 - Barrier Monte Carlo: knock-in + knock-out = vanilla on the same paths; a far barrier gives the vanilla; with $m = 1000$ the price matches the BGK formula; the unadjusted continuous formula understates the discrete down-and-out price. Results do not depend on the batch size, statistically and, with the same seed, exactly.
+
+## Output files
+
+Written by the script to [`results/`](../results):
+
+- [`part3_geometric_asian_validation.csv`](../results/part3_geometric_asian_validation.csv): geometric Asian, MC vs closed form.
+- [`part3_arithmetic_asian.csv`](../results/part3_arithmetic_asian.csv): arithmetic Asian, plain MC vs control variate.
+- [`part3_asian_vs_monitoring.csv`](../results/part3_asian_vs_monitoring.csv): Asian prices vs number of monitoring dates (Figure 6).
+- [`part3_barrier_monitoring.csv`](../results/part3_barrier_monitoring.csv): barrier monitoring bias, continuous and BGK (Figure 7).
+- [`part3_barrier_vs_level.csv`](../results/part3_barrier_vs_level.csv): down-and-out price vs barrier level (Figure 8).
