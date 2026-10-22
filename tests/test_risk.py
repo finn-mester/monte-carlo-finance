@@ -314,7 +314,15 @@ def test_backtest_has_no_look_ahead():
     day = returns.index[t]
     cols = [c for c in before.columns if c.startswith(("var_", "es_"))]
     # The forecast FOR day t is unchanged; the realised loss on day t is not.
-    assert before.loc[day, cols].equals(after.loc[day, cols])
+    # Compared with a tiny relative tolerance rather than bit for bit: the
+    # shocked copy lives at a different memory address, and BLAS kernels may
+    # then sum in a different order (last-bit differences on some platforms).
+    # A leak of the -30% crash would move VaR by far more than 1e-10.
+    np.testing.assert_allclose(
+        after.loc[day, cols].to_numpy(dtype=float),
+        before.loc[day, cols].to_numpy(dtype=float),
+        rtol=1e-10,
+    )
     assert after.loc[day, "loss"] > before.loc[day, "loss"]
     # The forecast for the next day does see the crash.
     next_day = returns.index[t + 1]
