@@ -48,6 +48,16 @@ class MCResult:
         """Upper bound of the 95% confidence interval."""
         return self.price + Z_95 * self.std_error
 
+    @classmethod
+    def from_samples(cls, samples: np.ndarray) -> "MCResult":
+        """Build a result from i.i.d. discounted payoffs: mean and std / sqrt(n)."""
+        samples = np.asarray(samples, dtype=float)
+        n = len(samples)
+        if n < 2:
+            raise ValueError(f"n must be at least 2 to estimate a standard error, got {n}")
+        std_error = samples.std(ddof=1) / np.sqrt(n)
+        return cls(price=float(samples.mean()), std_error=float(std_error), n=n)
+
     def contains(self, value: float) -> bool:
         """Return True if value lies inside the 95% confidence interval."""
         return self.ci_low <= value <= self.ci_high
@@ -89,10 +99,7 @@ def price_european(
 
     S_T = simulate_terminal(S0, r, sigma, T, n, rng=rng, q=q)
     discounted = np.exp(-r * T) * payoff(S_T, K, option)
-
-    price = discounted.mean()
-    std_error = discounted.std(ddof=1) / np.sqrt(n)
-    return MCResult(price=float(price), std_error=float(std_error), n=n)
+    return MCResult.from_samples(discounted)
 
 
 def convergence_curve(

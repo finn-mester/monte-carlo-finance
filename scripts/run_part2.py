@@ -19,7 +19,6 @@ results/figures/05_variance_reduction_by_strike.png
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
 
 import matplotlib
@@ -42,6 +41,7 @@ from mcfinance import (  # noqa: E402
     price_european_antithetic,
     price_european_combined,
     price_european_control_variate,
+    time_per_call,
 )
 
 # Reuse the Part 1 plotting style and markdown helper so all figures match.
@@ -158,21 +158,13 @@ def measure_cost(
     """Wall-clock seconds per estimator call at the same n.
 
     The cost does not depend on the strike, so it is measured once per method
-    on the at-the-money call. Each method is timed over n_runs calls, repeated
-    n_repeats times, and the fastest repeat is kept (as Python's timeit does):
-    the minimum is the measurement least affected by other processes.
+    on the at-the-money call (best of n_repeats blocks of n_runs calls).
     """
     params = dict(S0=S0, K=K_ATM, r=R, sigma=SIGMA, T=T, n=n, option="call", q=Q)
-    cost = {}
-    for name, method in METHODS.items():
-        timings = []
-        for _ in range(n_repeats):
-            start = time.perf_counter()
-            for _ in range(n_runs):
-                method(**params, rng=rng)
-            timings.append(time.perf_counter() - start)
-        cost[name] = min(timings) / n_runs
-    return cost
+    return {
+        name: time_per_call(method, n_runs, n_repeats, rng=rng, **params)
+        for name, method in METHODS.items()
+    }
 
 
 def add_efficiency(study: pd.DataFrame, cost: dict[str, float]) -> pd.DataFrame:

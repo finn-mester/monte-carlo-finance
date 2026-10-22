@@ -19,6 +19,7 @@ Methods
 from __future__ import annotations
 
 import dataclasses
+import time
 from dataclasses import dataclass
 from typing import Callable
 
@@ -226,3 +227,26 @@ def estimator_variance(
     rng = _get_rng(rng)
     prices = np.array([estimator(**kwargs, rng=rng).price for _ in range(n_reps)])
     return float(prices.var(ddof=1))
+
+
+def time_per_call(
+    estimator: Callable[..., MCResult],
+    n_calls: int = 200,
+    n_repeats: int = 5,
+    rng: np.random.Generator | int | None = None,
+    **kwargs,
+) -> float:
+    """Wall-clock seconds per call of estimator(**kwargs, rng=rng).
+
+    The estimator is called n_calls times in a row, this block is repeated
+    n_repeats times, and the fastest block is kept (as Python's timeit does):
+    the minimum is the measurement least affected by other processes.
+    """
+    rng = _get_rng(rng)
+    timings = []
+    for _ in range(n_repeats):
+        start = time.perf_counter()
+        for _ in range(n_calls):
+            estimator(**kwargs, rng=rng)
+        timings.append(time.perf_counter() - start)
+    return min(timings) / n_calls
