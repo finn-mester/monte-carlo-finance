@@ -59,7 +59,7 @@ python scripts/run_all.py              # or: everything above in order (skips th
 from mcfinance import bs_price, price_european
 
 res = price_european(S0=100, K=100, r=0.05, sigma=0.2, T=1.0, n=1_000_000, rng=42)
-print(res)                              # price +/- standard error, 95% CI, n
+print(res)  # price +/- standard error, 95% CI, n
 print(bs_price(100, 100, 0.05, 0.2, 1.0))
 ```
 

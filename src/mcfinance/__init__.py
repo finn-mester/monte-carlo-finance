@@ -1,4 +1,19 @@
-"""Monte Carlo methods in finance: option pricing and risk measurement."""
+"""Monte Carlo methods in finance: option pricing and risk measurement.
+
+Conventions shared by all modules
+---------------------------------
+S0, K, H  spot, strike and barrier, in the same currency unit; prices are
+          returned in that unit.
+r, q      continuously compounded risk-free rate and dividend yield, per year.
+sigma     annual volatility (0.2 = 20%).
+T         maturity in years; n_steps monitoring dates at t_i = i T / n_steps.
+n         number of simulated samples (payoff evaluations).
+option    "call" or "put".
+rng       numpy Generator, integer seed or None. Passing the same seed gives
+          identical results.
+Risk measures (risk.py) use daily log returns, portfolio value V in currency
+units, weights summing to 1, and report losses as POSITIVE numbers.
+"""
 
 from .black_scholes import bs_price
 from .exotics import path_averages, price_asian, price_barrier
@@ -9,6 +24,7 @@ from .exotics_closed_form import (
     geometric_average_expectation,
 )
 from .gbm import simulate_paths, simulate_terminal
+from .pricing import MCResult, convergence_curve, payoff, price_european
 from .risk import (
     RiskResult,
     basel_traffic_light,
@@ -25,7 +41,6 @@ from .risk import (
     portfolio_losses,
     rolling_backtest,
 )
-from .pricing import MCResult, convergence_curve, payoff, price_european
 from .variance_reduction import (
     ControlVariateResult,
     control_variate_estimate,

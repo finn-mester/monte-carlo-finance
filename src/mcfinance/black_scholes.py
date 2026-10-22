@@ -25,6 +25,11 @@ def bs_price(
 
     with d1 = [ln(S0/K) + (r - q + sigma^2/2) T] / (sigma sqrt(T)) and
     d2 = d1 - sigma sqrt(T).
+
+    Returns
+    -------
+    The option price (same currency unit as S0 and K). Raises ValueError for an
+    unknown option type or non-positive S0, K, sigma or T.
     """
     if option not in ("call", "put"):
         raise ValueError(f"option must be 'call' or 'put', got {option!r}")

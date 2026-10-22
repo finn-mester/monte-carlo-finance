@@ -5,7 +5,8 @@ import math
 import numpy as np
 import pandas as pd
 import pytest
-from scipy.stats import kurtosis, norm, t as student_t
+from scipy.stats import kurtosis, norm
+from scipy.stats import t as student_t
 
 from mcfinance.risk import (
     LEVELS,
@@ -264,7 +265,9 @@ def test_christoffersen_edge_cases():
     assert np.isfinite(christoffersen_independence(np.ones(250, dtype=bool))[0])
 
 
-@pytest.mark.parametrize("n, zone", [(0, "green"), (4, "green"), (5, "yellow"), (9, "yellow"), (10, "red"), (25, "red")])
+@pytest.mark.parametrize(
+    "n, zone", [(0, "green"), (4, "green"), (5, "yellow"), (9, "yellow"), (10, "red"), (25, "red")]
+)
 def test_traffic_light_boundaries(n, zone):
     assert basel_traffic_light(n) == zone
 
@@ -277,8 +280,16 @@ def _iid_returns(n_days, seed=SEED):
 
 def test_backtest_on_iid_normal_returns_is_calibrated():
     returns = _iid_returns(3_500)
-    bt = rolling_backtest(returns, W3, V, methods=("parametric_normal", "mc_normal"),
-                          levels=(0.99,), window=500, n_sims=20_000, rng=SEED)
+    bt = rolling_backtest(
+        returns,
+        W3,
+        V,
+        methods=("parametric_normal", "mc_normal"),
+        levels=(0.99,),
+        window=500,
+        n_sims=20_000,
+        rng=SEED,
+    )
     assert len(bt) == 3_000
     for method in ("parametric_normal", "mc_normal"):
         e = bt[f"exc_{method}_99"].to_numpy()
@@ -291,10 +302,14 @@ def test_backtest_on_iid_normal_returns_is_calibrated():
 def test_backtest_has_no_look_ahead():
     returns = _iid_returns(700)
     t = 600
-    before = rolling_backtest(returns, W3, V, methods=("parametric_normal", "historical"), window=500, rng=SEED)
+    before = rolling_backtest(
+        returns, W3, V, methods=("parametric_normal", "historical"), window=500, rng=SEED
+    )
     shocked = returns.copy()
     shocked.iloc[t] = -0.30  # a crash on day t
-    after = rolling_backtest(shocked, W3, V, methods=("parametric_normal", "historical"), window=500, rng=SEED)
+    after = rolling_backtest(
+        shocked, W3, V, methods=("parametric_normal", "historical"), window=500, rng=SEED
+    )
 
     day = returns.index[t]
     cols = [c for c in before.columns if c.startswith(("var_", "es_"))]
@@ -303,7 +318,10 @@ def test_backtest_has_no_look_ahead():
     assert after.loc[day, "loss"] > before.loc[day, "loss"]
     # The forecast for the next day does see the crash.
     next_day = returns.index[t + 1]
-    assert after.loc[next_day, "var_parametric_normal_99"] > before.loc[next_day, "var_parametric_normal_99"]
+    assert (
+        after.loc[next_day, "var_parametric_normal_99"]
+        > before.loc[next_day, "var_parametric_normal_99"]
+    )
 
 
 def test_estimate_risk_rejects_unknown_method():

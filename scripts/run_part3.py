@@ -102,7 +102,7 @@ def format_geometric(df: pd.DataFrame) -> pd.DataFrame:
             "n": df["n"].map("{:,}".format),
             "MC price": df["mc_price"].map(fmt),
             "Std. error": df["std_error"].map(fmt),
-            "95% CI": [ci_text(lo, hi) for lo, hi in zip(df["ci_low"], df["ci_high"])],
+            "95% CI": [ci_text(lo, hi) for lo, hi in zip(df["ci_low"], df["ci_high"], strict=True)],
             "Closed form": df["closed_form"].map(fmt),
             "CI contains exact": df["ci_contains_exact"].map({True: "yes", False: "no"}),
         }
@@ -131,7 +131,9 @@ def arithmetic_asian_study(
         cv = price_asian(**base, n=n_price, control_variate=True, rng=rng)
 
         var_plain = estimator_variance(price_asian, n_reps, rng=rng, **base, n=n_study)
-        var_cv = estimator_variance(price_asian, n_reps, rng=rng, **base, n=n_study, control_variate=True)
+        var_cv = estimator_variance(
+            price_asian, n_reps, rng=rng, **base, n=n_study, control_variate=True
+        )
         t_plain = time_per_call(price_asian, 20, 3, rng=rng, **base, n=n_study)
         t_cv = time_per_call(price_asian, 20, 3, rng=rng, **base, n=n_study, control_variate=True)
 
@@ -168,10 +170,12 @@ def format_arithmetic(df: pd.DataFrame) -> pd.DataFrame:
             "Method": df["method"],
             "MC price": df["mc_price"].map(fmt),
             "Std. error": df["std_error"].map(fmt),
-            "95% CI": [ci_text(lo, hi) for lo, hi in zip(df["ci_low"], df["ci_high"])],
+            "95% CI": [ci_text(lo, hi) for lo, hi in zip(df["ci_low"], df["ci_high"], strict=True)],
             "rho": opt(df["rho"], lambda v: f"{v:.5f}"),
             "Predicted 1/(1-rho^2)": opt(df["predicted_factor"], lambda v: f"{v:.0f}"),
-            "Measured VR factor": df["variance_factor"].map(lambda v: f"{v:.0f}" if v != 1 else "1"),
+            "Measured VR factor": df["variance_factor"].map(
+                lambda v: f"{v:.0f}" if v != 1 else "1"
+            ),
             "Time ratio": df["time_ratio"].map("{:.2f}".format),
             "Efficiency gain": df["efficiency_gain"].map(lambda v: f"{v:.0f}" if v != 1 else "1"),
         }
@@ -199,13 +203,31 @@ def figure_asian_vs_monitoring(rng: np.random.Generator, n: int = 50_000) -> pd.
     df = pd.DataFrame(rows)
 
     fig, ax = plt.subplots(figsize=(8, 4.8))
-    ax.axhline(european, color=MUTED, linestyle="--", linewidth=1.5,
-               label=f"European call, Black-Scholes ({european:.4f})")
-    ax.plot(df["m"], df["geometric_closed_form"], color=ORANGE, marker="s", markersize=7,
-            label="Geometric Asian call (closed form)")
-    ax.errorbar(df["m"], df["arithmetic_cv_price"], yerr=Z_95 * df["arithmetic_cv_std_error"],
-                color=BLUE, marker="o", markersize=7, capsize=4,
-                label="Arithmetic Asian call (MC + control variate;\n95% CI smaller than the marker)")
+    ax.axhline(
+        european,
+        color=MUTED,
+        linestyle="--",
+        linewidth=1.5,
+        label=f"European call, Black-Scholes ({european:.4f})",
+    )
+    ax.plot(
+        df["m"],
+        df["geometric_closed_form"],
+        color=ORANGE,
+        marker="s",
+        markersize=7,
+        label="Geometric Asian call (closed form)",
+    )
+    ax.errorbar(
+        df["m"],
+        df["arithmetic_cv_price"],
+        yerr=Z_95 * df["arithmetic_cv_std_error"],
+        color=BLUE,
+        marker="o",
+        markersize=7,
+        capsize=4,
+        label="Arithmetic Asian call (MC + control variate;\n95% CI smaller than the marker)",
+    )
     ax.set_xscale("log")
     ax.set_xticks(ms, [str(m) for m in ms])
     ax.minorticks_off()
@@ -223,7 +245,9 @@ def figure_asian_vs_monitoring(rng: np.random.Generator, n: int = 50_000) -> pd.
 # ---------------------------------------------------------------------------
 # B1-B2. Barrier: discrete monitoring bias and BGK correction
 # ---------------------------------------------------------------------------
-def barrier_monitoring_study(rng: np.random.Generator, n: int = 200_000) -> tuple[pd.DataFrame, float]:
+def barrier_monitoring_study(
+    rng: np.random.Generator, n: int = 200_000
+) -> tuple[pd.DataFrame, float]:
     ms = [4, 12, 26, 52, 126, 252, 504, 1000]
     continuous = barrier_closed_form(S0, K, H, R, SIGMA, T, "down-and-out", q=Q)
     rows = []
@@ -255,13 +279,27 @@ def barrier_monitoring_study(rng: np.random.Generator, n: int = 200_000) -> tupl
     fig, ax = plt.subplots(figsize=(8, 4.8))
     m_grid = np.geomspace(ms[0], ms[-1], 200)
     bgk_curve = [
-        barrier_closed_form(S0, K, bgk_adjusted_barrier(H, SIGMA, T, m), R, SIGMA, T, q=Q) for m in m_grid
+        barrier_closed_form(S0, K, bgk_adjusted_barrier(H, SIGMA, T, m), R, SIGMA, T, q=Q)
+        for m in m_grid
     ]
-    ax.axhline(continuous, color=ORANGE, linestyle="--",
-               label=f"Continuous closed form, no correction ({continuous:.4f})")
+    ax.axhline(
+        continuous,
+        color=ORANGE,
+        linestyle="--",
+        label=f"Continuous closed form, no correction ({continuous:.4f})",
+    )
     ax.plot(m_grid, bgk_curve, color=AQUA, label="BGK-adjusted closed form")
-    ax.errorbar(df["m"], df["mc_price"], yerr=Z_95 * df["std_error"], color=BLUE, marker="o",
-                markersize=7, capsize=4, linestyle="none", label="Monte Carlo, discrete monitoring (95% CI)")
+    ax.errorbar(
+        df["m"],
+        df["mc_price"],
+        yerr=Z_95 * df["std_error"],
+        color=BLUE,
+        marker="o",
+        markersize=7,
+        capsize=4,
+        linestyle="none",
+        label="Monte Carlo, discrete monitoring (95% CI)",
+    )
     ax.set_xscale("log")
     ax.set_xticks(ms, [str(m) for m in ms])
     ax.minorticks_off()
@@ -282,7 +320,7 @@ def format_barrier_table(df: pd.DataFrame) -> pd.DataFrame:
             "m": df["m"],
             "MC price": df["mc_price"].map(fmt),
             "Std. error": df["std_error"].map(fmt),
-            "95% CI": [ci_text(lo, hi) for lo, hi in zip(df["ci_low"], df["ci_high"])],
+            "95% CI": [ci_text(lo, hi) for lo, hi in zip(df["ci_low"], df["ci_high"], strict=True)],
             "Continuous CF": df["continuous_closed_form"].map(fmt),
             "Bias (continuous - MC)": df["continuous_bias"].map(fmt),
             "BGK CF": df["bgk_closed_form"].map(fmt),
@@ -295,7 +333,9 @@ def format_barrier_table(df: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # B3. Figure 8: price vs barrier level
 # ---------------------------------------------------------------------------
-def figure_barrier_vs_level(rng: np.random.Generator, n: int = 100_000, m: int = 252) -> pd.DataFrame:
+def figure_barrier_vs_level(
+    rng: np.random.Generator, n: int = 100_000, m: int = 252
+) -> pd.DataFrame:
     levels = [60, 65, 70, 75, 80, 85, 90, 93, 95, 97, 99]
     vanilla = bs_price(S0, K, R, SIGMA, T, "call", q=Q)
     H_eff = lambda h: bgk_adjusted_barrier(h, SIGMA, T, m)  # noqa: E731
@@ -319,10 +359,21 @@ def figure_barrier_vs_level(rng: np.random.Generator, n: int = 100_000, m: int =
     curve = [barrier_closed_form(S0, K, H_eff(h), R, SIGMA, T, q=Q) for h in H_grid]
 
     fig, ax = plt.subplots(figsize=(8, 4.8))
-    ax.axhline(vanilla, color=MUTED, linestyle="--", linewidth=1.5, label=f"Vanilla call ({vanilla:.4f})")
+    ax.axhline(
+        vanilla, color=MUTED, linestyle="--", linewidth=1.5, label=f"Vanilla call ({vanilla:.4f})"
+    )
     ax.plot(H_grid, curve, color=AQUA, label=f"BGK-adjusted closed form (m = {m})")
-    ax.errorbar(df["H"], df["mc_price"], yerr=Z_95 * df["std_error"], color=BLUE, marker="o",
-                markersize=7, capsize=4, linestyle="none", label=f"Monte Carlo, m = {m} (95% CI smaller than the marker)")
+    ax.errorbar(
+        df["H"],
+        df["mc_price"],
+        yerr=Z_95 * df["std_error"],
+        color=BLUE,
+        marker="o",
+        markersize=7,
+        capsize=4,
+        linestyle="none",
+        label=f"Monte Carlo, m = {m} (95% CI smaller than the marker)",
+    )
     ax.set_xlabel("Barrier level H (USD), spot S0 = 100")
     ax.set_ylabel("Down-and-out call price (USD)")
     ax.set_xlim(58, 101)
@@ -338,14 +389,20 @@ def figure_barrier_vs_level(rng: np.random.Generator, n: int = 100_000, m: int =
 # ---------------------------------------------------------------------------
 # B4. In-out parity on one set of paths
 # ---------------------------------------------------------------------------
-def in_out_parity(rng: np.random.Generator, n: int = 100_000, m: int = 52) -> tuple[float, float, float]:
+def in_out_parity(
+    rng: np.random.Generator, n: int = 100_000, m: int = 52
+) -> tuple[float, float, float]:
     """Price the knock-out, the knock-in and the vanilla on the SAME paths.
 
     The generator state is copied before each call so that all three consume
     exactly the same normal draws; the main generator then moves on.
     """
-    d_out = price_barrier(S0, K, H, R, SIGMA, T, n, m, kind="down-and-out", q=Q, rng=copy.deepcopy(rng))
-    d_in = price_barrier(S0, K, H, R, SIGMA, T, n, m, kind="down-and-in", q=Q, rng=copy.deepcopy(rng))
+    d_out = price_barrier(
+        S0, K, H, R, SIGMA, T, n, m, kind="down-and-out", q=Q, rng=copy.deepcopy(rng)
+    )
+    d_in = price_barrier(
+        S0, K, H, R, SIGMA, T, n, m, kind="down-and-in", q=Q, rng=copy.deepcopy(rng)
+    )
     paths = simulate_paths(S0, R, SIGMA, T, n, m, rng=rng, q=Q)
     vanilla = float(np.mean(np.exp(-R * T) * payoff(paths[:, -1], K, "call")))
     return d_out.price, d_in.price, vanilla
@@ -366,23 +423,37 @@ def main() -> None:
 
     arith = arithmetic_asian_study(rng)
     arith.to_csv(RESULTS / "part3_arithmetic_asian.csv", index=False)
-    print("\nA2. Arithmetic Asian call: plain MC vs geometric control variate "
-          "(prices at n = 50,000; VR factor from 200 repetitions at n = 10,000; "
-          "time = best of 3 blocks of 20 calls at n = 10,000)\n")
+    print(
+        "\nA2. Arithmetic Asian call: plain MC vs geometric control variate "
+        "(prices at n = 50,000; VR factor from 200 repetitions at n = 10,000; "
+        "time = best of 3 blocks of 20 calls at n = 10,000)\n"
+    )
     print(to_markdown(format_arithmetic(arith)))
-    print("\nTime per call at n = 10,000 (ms): " + ", ".join(
-        f"m={row.m} {row.method} {1e3 * row.seconds_per_run:.2f}" for row in arith.itertuples()))
+    print(
+        "\nTime per call at n = 10,000 (ms): "
+        + ", ".join(
+            f"m={row.m} {row.method} {1e3 * row.seconds_per_run:.2f}" for row in arith.itertuples()
+        )
+    )
 
     asian_m = figure_asian_vs_monitoring(rng)
     asian_m.to_csv(RESULTS / "part3_asian_vs_monitoring.csv", index=False)
-    print("\nA3. Asian call price vs number of monitoring dates (arithmetic: MC + CV, n = 50,000)\n")
-    print(to_markdown(pd.DataFrame({
-        "m": asian_m["m"],
-        "Arithmetic (MC + CV)": asian_m["arithmetic_cv_price"].map(fmt),
-        "Std. error": asian_m["arithmetic_cv_std_error"].map(fmt),
-        "Geometric (closed form)": asian_m["geometric_closed_form"].map(fmt),
-        "European (BS)": asian_m["european_bs"].map(fmt),
-    })))
+    print(
+        "\nA3. Asian call price vs number of monitoring dates (arithmetic: MC + CV, n = 50,000)\n"
+    )
+    print(
+        to_markdown(
+            pd.DataFrame(
+                {
+                    "m": asian_m["m"],
+                    "Arithmetic (MC + CV)": asian_m["arithmetic_cv_price"].map(fmt),
+                    "Std. error": asian_m["arithmetic_cv_std_error"].map(fmt),
+                    "Geometric (closed form)": asian_m["geometric_closed_form"].map(fmt),
+                    "European (BS)": asian_m["european_bs"].map(fmt),
+                }
+            )
+        )
+    )
     print("Saved results/figures/06_asian_vs_monitoring.png")
 
     # ---- B. Barrier options ----
@@ -391,28 +462,39 @@ def main() -> None:
     print(f"\nB1. Down-and-out call, K = {K:.0f}, H = {H:.0f}, n = 200,000\n")
     print(to_markdown(format_barrier_table(barrier)))
     print("\nAll monitoring frequencies (figure 7):")
-    print(barrier[["m", "mc_price", "std_error", "continuous_bias", "bgk_bias", "bgk_in_ci"]]
-          .round(4).to_string(index=False))
+    print(
+        barrier[["m", "mc_price", "std_error", "continuous_bias", "bgk_bias", "bgk_in_ci"]]
+        .round(4)
+        .to_string(index=False)
+    )
     print(f"Fitted log-log slope of |continuous - MC| vs m: {slope:.4f} (theory -0.5)")
     print("Saved results/figures/07_barrier_monitoring_bias.png")
 
     level = figure_barrier_vs_level(rng)
     level.to_csv(RESULTS / "part3_barrier_vs_level.csv", index=False)
     print("\nB3. Down-and-out call vs barrier level (m = 252, n = 100,000)\n")
-    print(to_markdown(pd.DataFrame({
-        "H": level["H"],
-        "MC price": level["mc_price"].map(fmt),
-        "Std. error": level["std_error"].map(fmt),
-        "BGK CF": level["bgk_closed_form"].map(fmt),
-        "BGK - MC": level["bgk_minus_mc"].map(fmt),
-        "BGK in CI": level["bgk_in_ci"].map({True: "yes", False: "no"}),
-    })))
+    print(
+        to_markdown(
+            pd.DataFrame(
+                {
+                    "H": level["H"],
+                    "MC price": level["mc_price"].map(fmt),
+                    "Std. error": level["std_error"].map(fmt),
+                    "BGK CF": level["bgk_closed_form"].map(fmt),
+                    "BGK - MC": level["bgk_minus_mc"].map(fmt),
+                    "BGK in CI": level["bgk_in_ci"].map({True: "yes", False: "no"}),
+                }
+            )
+        )
+    )
     print("Saved results/figures/08_barrier_price_vs_level.png")
 
     d_out, d_in, vanilla = in_out_parity(rng)
     print(f"\nB4. In-out parity on the same 100,000 paths (m = 52, H = {H:.0f}):")
-    print(f"down-and-out {d_out:.6f} + down-and-in {d_in:.6f} = {d_out + d_in:.6f}; "
-          f"vanilla on the same paths {vanilla:.6f}; difference {d_out + d_in - vanilla:.2e}")
+    print(
+        f"down-and-out {d_out:.6f} + down-and-in {d_in:.6f} = {d_out + d_in:.6f}; "
+        f"vanilla on the same paths {vanilla:.6f}; difference {d_out + d_in - vanilla:.2e}"
+    )
 
 
 if __name__ == "__main__":

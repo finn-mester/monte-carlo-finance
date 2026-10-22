@@ -29,8 +29,8 @@ mc_normal + ewma_covariance gives the RiskMetrics-style "mc_normal_ewma".
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -50,6 +50,7 @@ class RiskResult:
     es: dict[float, float]
 
     def to_frame(self) -> pd.DataFrame:
+        """VaR and ES as a DataFrame indexed by confidence level."""
         return pd.DataFrame({"VaR": self.var, "ES": self.es}).rename_axis("level")
 
 
@@ -78,7 +79,13 @@ def portfolio_losses(log_returns: np.ndarray, weights: Sequence[float], value: f
 
 
 def var_es_from_losses(losses: np.ndarray, levels: Sequence[float] = LEVELS) -> RiskResult:
-    """Empirical VaR (alpha-quantile) and ES (mean of losses >= VaR)."""
+    """Empirical VaR (alpha-quantile) and ES (mean of losses >= VaR).
+
+    Returns
+    -------
+    RiskResult with VaR and ES per level, in the unit of the losses (positive =
+    loss).
+    """
     losses = np.asarray(losses, dtype=float)
     var, es = {}, {}
     for alpha in levels:
@@ -89,7 +96,12 @@ def var_es_from_losses(losses: np.ndarray, levels: Sequence[float] = LEVELS) -> 
 
 
 def cholesky_factor(cov: np.ndarray) -> np.ndarray:
-    """Lower-triangular L with L L^T = cov; ValueError if cov is not positive definite."""
+    """Lower-triangular L with L L^T = cov; ValueError if cov is not positive definite.
+
+    Returns
+    -------
+    The lower-triangular Cholesky factor L, shape (d, d).
+    """
     cov = np.asarray(cov, dtype=float)
     if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
         raise ValueError("cov must be a square matrix")
@@ -113,6 +125,10 @@ def cholesky_correlated_normals(
         Cov(x) = L Cov(z) L^T = L I L^T = L L^T = cov,
     so multiplying by the Cholesky factor turns independent shocks into
     shocks with the target variances and correlations.
+
+    Returns
+    -------
+    Array of shape (n, d) of correlated draws.
     """
     L = cholesky_factor(cov)
     rng = _get_rng(rng)
@@ -144,6 +160,7 @@ def ewma_covariance(log_returns: np.ndarray, lam: float = 0.94) -> np.ndarray:
 
 
 def _mean_vector(mu: np.ndarray | None, d: int) -> np.ndarray:
+    """Zero vector when mu is None (default zero-mean convention), else mu."""
     return np.zeros(d) if mu is None else np.asarray(mu, dtype=float)
 
 
@@ -244,7 +261,10 @@ def mc_student_t(
     if W is None:
         W = rng.chisquare(nu, size=len(Z)) / nu
     scale = np.sqrt((nu - 2) / nu)
-    X = _mean_vector(mu, L.shape[0]) * horizon + np.sqrt(horizon) * scale * (Z @ L.T) / np.sqrt(W)[:, None]
+    X = (
+        _mean_vector(mu, L.shape[0]) * horizon
+        + np.sqrt(horizon) * scale * (Z @ L.T) / np.sqrt(W)[:, None]
+    )
     return var_es_from_losses(portfolio_losses(X, weights, value), levels)
 
 
@@ -358,8 +378,9 @@ def rolling_backtest(
         past = r[t - window : t]  # excludes day t
         row = {"loss": realised[t]}
         for method in methods:
-            res = estimate_risk(method, past, w, value, levels, use_mean=use_mean, nu=nu,
-                                lam=lam, Z=Z, W=W)
+            res = estimate_risk(
+                method, past, w, value, levels, use_mean=use_mean, nu=nu, lam=lam, Z=Z, W=W
+            )
             for alpha in levels:
                 key = f"{method}_{level_label(alpha)}"
                 row[f"var_{key}"] = res.var[alpha]
@@ -371,7 +392,12 @@ def rolling_backtest(
 
 
 def level_label(alpha: float) -> str:
-    """0.99 -> '99', 0.975 -> '97.5' (used in column names and tables)."""
+    """0.99 -> '99', 0.975 -> '97.5' (used in column names and tables).
+
+    Returns
+    -------
+    The level as a percentage string without trailing zeros.
+    """
     return f"{100 * alpha:g}"
 
 
@@ -421,6 +447,7 @@ def christoffersen_independence(exceptions: Sequence[bool]) -> tuple[float, floa
     n00, n01, n10, n11 = _transition_counts(e)
 
     def ratio(a: int, b: int) -> float:
+        """a / b, or 0 when b = 0 (no transitions of that kind)."""
         return a / b if b > 0 else 0.0
 
     pi01 = ratio(n01, n00 + n01)
@@ -436,6 +463,10 @@ def christoffersen_cc(exceptions: Sequence[bool], p: float) -> tuple[float, floa
     """Conditional coverage test: LR_cc = LR_pof + LR_ind, chi-square with 2 dof.
 
     Rejects if the exception rate is wrong OR exceptions are clustered.
+
+    Returns
+    -------
+    (LR statistic, p-value).
     """
     lr = kupiec_pof(exceptions, p)[0] + christoffersen_independence(exceptions)[0]
     return float(lr), float(chi2.sf(lr, df=2))
@@ -446,6 +477,10 @@ def basel_traffic_light(n_exceptions: int) -> str:
 
     green: 0-4 exceptions, yellow: 5-9, red: 10 or more. Used here for
     illustration only.
+
+    Returns
+    -------
+    'green', 'yellow' or 'red'.
     """
     if n_exceptions < 0:
         raise ValueError("n_exceptions must be non-negative")

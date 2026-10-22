@@ -42,11 +42,11 @@ EXTREME_RETURN = 0.25
 def download() -> pd.DataFrame:
     import yfinance as yf
 
-    raw = yf.download(
-        list(TICKERS), start=START, auto_adjust=True, progress=False, threads=False
-    )
+    raw = yf.download(list(TICKERS), start=START, auto_adjust=True, progress=False, threads=False)
     if raw is None or raw.empty:
-        raise RuntimeError("yfinance returned no data (network problem, rate limit or ticker change)")
+        raise RuntimeError(
+            "yfinance returned no data (network problem, rate limit or ticker change)"
+        )
     prices = raw["Close"]
     missing = [t for t in TICKERS if t not in prices.columns or prices[t].dropna().empty]
     if missing:
@@ -59,7 +59,9 @@ def main() -> None:
         prices = download()
     except Exception as exc:  # report any failure clearly and stop
         print(f"Download FAILED: {exc}", file=sys.stderr)
-        print("No file was written. Do not replace the data with synthetic prices.", file=sys.stderr)
+        print(
+            "No file was written. Do not replace the data with synthetic prices.", file=sys.stderr
+        )
         sys.exit(1)
 
     n_raw = len(prices)
@@ -77,19 +79,25 @@ def main() -> None:
     DATA.mkdir(exist_ok=True)
     prices.to_csv(DATA / "prices.csv")
 
-    print(f"Downloaded on {date.today().isoformat()} from Yahoo Finance (yfinance, auto_adjust=True)")
+    print(
+        f"Downloaded on {date.today().isoformat()} from Yahoo Finance (yfinance, auto_adjust=True)"
+    )
     for ticker, name in TICKERS.items():
         print(f"  {ticker:7s} {name}")
-    print(f"Rows downloaded: {n_raw}, rows with all prices: {len(prices)} "
-          f"(dropped {n_raw - len(prices)})")
-    print(f"Start: {prices.index[0].date()}, end: {prices.index[-1].date()}, "
-          f"observations: {len(prices)} prices, {len(log_returns)} daily returns")
+    print(
+        f"Rows downloaded: {n_raw}, rows with all prices: {len(prices)} "
+        f"(dropped {n_raw - len(prices)})"
+    )
+    print(
+        f"Start: {prices.index[0].date()}, end: {prices.index[-1].date()}, "
+        f"observations: {len(prices)} prices, {len(log_returns)} daily returns"
+    )
     if extreme.empty:
         print(f"No absolute daily log return above {EXTREME_RETURN:.0%}.")
     else:
         print(f"Flagged for manual review (|log return| > {EXTREME_RETURN:.0%}), kept in the data:")
         print(extreme.round(4).to_string())
-    print(f"Saved {DATA / 'prices.csv'}")
+    print(f"Saved {(DATA / 'prices.csv').relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

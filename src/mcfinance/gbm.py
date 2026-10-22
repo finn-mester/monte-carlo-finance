@@ -80,6 +80,10 @@ def terminal_from_normals(
 
     Exposed separately so that estimators which need control over the normals
     (e.g. antithetic variates, which reuse Z and -Z) share the same formula.
+
+    Returns
+    -------
+    Array of S_T with the same shape as Z.
     """
     drift = (r - q - 0.5 * sigma**2) * T
     diffusion = sigma * np.sqrt(T) * Z

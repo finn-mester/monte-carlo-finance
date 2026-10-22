@@ -61,9 +61,7 @@ def test_confidence_interval_coverage(method):
     rng = np.random.default_rng(SEED)
     exact = bs_price(S0, K, R, SIGMA, T, "call")
     n_reps = 500
-    hits = sum(
-        method(S0, K, R, SIGMA, T, n=5_000, rng=rng).contains(exact) for _ in range(n_reps)
-    )
+    hits = sum(method(S0, K, R, SIGMA, T, n=5_000, rng=rng).contains(exact) for _ in range(n_reps))
     assert 0.92 <= hits / n_reps <= 0.98
 
 

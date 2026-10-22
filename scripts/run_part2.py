@@ -111,7 +111,9 @@ def format_pricing_table(df: pd.DataFrame) -> pd.DataFrame:
             "n": df["n"].map("{:,}".format),
             "MC price": df["mc_price"].map("{:.4f}".format),
             "Std. error": df["std_error"].map("{:.4f}".format),
-            "95% CI": [f"[{lo:.4f}, {hi:.4f}]" for lo, hi in zip(df["ci_low"], df["ci_high"])],
+            "95% CI": [
+                f"[{lo:.4f}, {hi:.4f}]" for lo, hi in zip(df["ci_low"], df["ci_high"], strict=True)
+            ],
             "Black-Scholes": df["bs_price"].map("{:.4f}".format),
             "CI contains BS": df["ci_contains_bs"].map({True: "yes", False: "no"}),
         }
@@ -198,10 +200,12 @@ def correlation_check(rng: np.random.Generator, study: pd.DataFrame) -> pd.DataF
     for option in ("call", "put"):
         for K in STRIKES:
             # A single large run gives a precise estimate of rho.
-            res = price_european_control_variate(S0, K, R, SIGMA, T, 1_000_000, option=option, q=Q, rng=rng)
-            measured = study.query(
-                "option == @option and K == @K and method == 'Control variate'"
-            )["variance_factor"].iloc[0]
+            res = price_european_control_variate(
+                S0, K, R, SIGMA, T, 1_000_000, option=option, q=Q, rng=rng
+            )
+            measured = study.query("option == @option and K == @K and method == 'Control variate'")[
+                "variance_factor"
+            ].iloc[0]
             rows.append(
                 {
                     "Option": option.capitalize(),
@@ -249,7 +253,9 @@ def figure_error_vs_n(rng: np.random.Generator, n_runs: int = 300) -> dict[str, 
     ax.set_yscale("log")
     ax.set_xlabel("Number of payoff evaluations n (log scale)")
     ax.set_ylabel("RMSE vs Black-Scholes (USD, log scale)")
-    ax.set_title("Same $1/\\sqrt{n}$ rate, much lower error: variance reduction shifts the line down")
+    ax.set_title(
+        "Same $1/\\sqrt{n}$ rate, much lower error: variance reduction shifts the line down"
+    )
     ax.legend(loc="lower left")
     fig.tight_layout()
     fig.savefig(FIGURES / "04_error_vs_n.png")
@@ -266,7 +272,7 @@ def figure_vr_by_strike(study: pd.DataFrame) -> None:
     x = np.arange(len(STRIKES))
 
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.8), sharey=True)
-    for ax, option in zip(axes, ("call", "put")):
+    for ax, option in zip(axes, ("call", "put"), strict=True):
         sub = study[study["option"] == option]
         for i, name in enumerate(methods):
             factors = [
@@ -275,11 +281,23 @@ def figure_vr_by_strike(study: pd.DataFrame) -> None:
             ]
             pos = x + (i - 1) * width
             # White edges create a visible gap between adjacent bars.
-            ax.bar(pos, factors, width, color=COLORS[name], edgecolor="white", linewidth=2,
-                   label=name, zorder=3)
-            for xi, f in zip(pos, factors):
-                ax.text(xi, f * 1.08, f"{f:.1f}x", ha="center", va="bottom", fontsize=8, color="#222222")
-        ax.axhline(1.0, color=MUTED, linestyle="--", linewidth=1.2, label="Plain MC (factor 1)", zorder=4)
+            ax.bar(
+                pos,
+                factors,
+                width,
+                color=COLORS[name],
+                edgecolor="white",
+                linewidth=2,
+                label=name,
+                zorder=3,
+            )
+            for xi, f in zip(pos, factors, strict=True):
+                ax.text(
+                    xi, f * 1.08, f"{f:.1f}x", ha="center", va="bottom", fontsize=8, color="#222222"
+                )
+        ax.axhline(
+            1.0, color=MUTED, linestyle="--", linewidth=1.2, label="Plain MC (factor 1)", zorder=4
+        )
         ax.set_xticks(x, [f"K = {K:.0f}\n({moneyness(option, K)})" for K in STRIKES])
         ax.set_yscale("log")
         ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}x"))
@@ -291,7 +309,10 @@ def figure_vr_by_strike(study: pd.DataFrame) -> None:
     axes[1].legend(loc="upper left")
     fig.suptitle(
         "Combining both methods wins for every strike; each method alone helps most in the money",
-        x=0.01, ha="left", fontweight="bold", fontsize=12,
+        x=0.01,
+        ha="left",
+        fontweight="bold",
+        fontsize=12,
     )
     fig.tight_layout()
     fig.savefig(FIGURES / "05_variance_reduction_by_strike.png")
@@ -317,8 +338,10 @@ def main() -> None:
     cost = measure_cost(rng)
     study = add_efficiency(study, cost)
     study.to_csv(RESULTS / "part2_variance_reduction.csv", index=False)
-    print("\nVariance reduction (VR) factor and efficiency gain vs plain MC "
-          "(n = 10,000, 500 repetitions per method)")
+    print(
+        "\nVariance reduction (VR) factor and efficiency gain vs plain MC "
+        "(n = 10,000, 500 repetitions per method)"
+    )
     print("efficiency = VR factor / (time_method / time_plain)\n")
     print(to_markdown(format_study_table(study)))
 
@@ -337,8 +360,10 @@ def main() -> None:
 
     slopes = figure_error_vs_n(rng)
     print("\nSaved results/figures/04_error_vs_n.png")
-    print("Fitted log-log slopes of RMSE vs n (theory -0.5): "
-          + ", ".join(f"{k} {v:.4f}" for k, v in slopes.items()))
+    print(
+        "Fitted log-log slopes of RMSE vs n (theory -0.5): "
+        + ", ".join(f"{k} {v:.4f}" for k, v in slopes.items())
+    )
 
     figure_vr_by_strike(study)
     print("Saved results/figures/05_variance_reduction_by_strike.png")

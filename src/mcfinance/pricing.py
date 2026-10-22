@@ -49,7 +49,7 @@ class MCResult:
         return self.price + Z_95 * self.std_error
 
     @classmethod
-    def from_samples(cls, samples: np.ndarray) -> "MCResult":
+    def from_samples(cls, samples: np.ndarray) -> MCResult:
         """Build a result from i.i.d. discounted payoffs: mean and std / sqrt(n)."""
         samples = np.asarray(samples, dtype=float)
         n = len(samples)
@@ -70,7 +70,12 @@ class MCResult:
 
 
 def payoff(S_T: np.ndarray, K: float, option: str = "call") -> np.ndarray:
-    """Payoff of a European call max(S_T - K, 0) or put max(K - S_T, 0)."""
+    """Payoff of a European call max(S_T - K, 0) or put max(K - S_T, 0).
+
+    Returns
+    -------
+    Array of undiscounted payoffs, same shape as S_T (never negative).
+    """
     if option == "call":
         return np.maximum(S_T - K, 0.0)
     if option == "put":

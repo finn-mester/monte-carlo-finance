@@ -112,7 +112,9 @@ def format_table(df: pd.DataFrame) -> pd.DataFrame:
             "n": df["n"].map("{:,}".format),
             "MC price": df["mc_price"].map("{:.4f}".format),
             "Std. error": df["std_error"].map("{:.4f}".format),
-            "95% CI": [f"[{lo:.4f}, {hi:.4f}]" for lo, hi in zip(df["ci_low"], df["ci_high"])],
+            "95% CI": [
+                f"[{lo:.4f}, {hi:.4f}]" for lo, hi in zip(df["ci_low"], df["ci_high"], strict=True)
+            ],
             "Black-Scholes": df["bs_price"].map("{:.4f}".format),
             "Abs. error": df["abs_error"].map("{:.4f}".format),
             "CI contains BS": df["ci_contains_bs"].map({True: "yes", False: "no"}),
@@ -132,7 +134,9 @@ def figure_convergence(rng: np.random.Generator) -> None:
     lo, hi = prices - 1.959963984540054 * ses, prices + 1.959963984540054 * ses
 
     fig, ax = plt.subplots(figsize=(8, 4.5))
-    ax.fill_between(ns, lo, hi, color=BLUE, alpha=0.18, linewidth=0, label="95% confidence interval")
+    ax.fill_between(
+        ns, lo, hi, color=BLUE, alpha=0.18, linewidth=0, label="95% confidence interval"
+    )
     ax.plot(ns, prices, color=BLUE, label="Monte Carlo estimate")
     ax.axhline(exact, color=ORANGE, linestyle="--", label=f"Black-Scholes price ({exact:.4f})")
     ax.set_xscale("log")
@@ -224,8 +228,15 @@ def figure_paths_and_distribution(rng: np.random.Generator) -> None:
     ax1.legend(loc="upper left", frameon=True, facecolor="white", edgecolor="none", framealpha=0.9)
 
     x = np.linspace(S_T.min(), np.quantile(S_T, 0.999), 400)
-    ax2.hist(S_T, bins=120, range=(x[0], x[-1]), density=True, color=BLUE, alpha=0.45,
-             label="Simulated $S_T$ (200,000)")
+    ax2.hist(
+        S_T,
+        bins=120,
+        range=(x[0], x[-1]),
+        density=True,
+        color=BLUE,
+        alpha=0.45,
+        label="Simulated $S_T$ (200,000)",
+    )
     ax2.plot(x, density.pdf(x), color=ORANGE, label="Exact lognormal density")
     ax2.axvline(K, color=MUTED, linestyle=":", linewidth=1.2, label="Strike")
     ax2.set_xlabel("Terminal price $S_T$ (USD)")
@@ -245,8 +256,10 @@ def main() -> None:
     rng = np.random.default_rng(SEED)  # one generator for the whole run
 
     print(f"Contract: S0={S0}, K={K}, r={R}, sigma={SIGMA}, T={T}, q={Q}, seed={SEED}")
-    print(f"Black-Scholes call = {bs_price(S0, K, R, SIGMA, T, 'call'):.4f}, "
-          f"put = {bs_price(S0, K, R, SIGMA, T, 'put'):.4f}\n")
+    print(
+        f"Black-Scholes call = {bs_price(S0, K, R, SIGMA, T, 'call'):.4f}, "
+        f"put = {bs_price(S0, K, R, SIGMA, T, 'put'):.4f}\n"
+    )
 
     table = pricing_table(rng)
     table.to_csv(RESULTS / "part1_pricing_table.csv", index=False)
@@ -260,7 +273,10 @@ def main() -> None:
     print("\nSaved results/figures/01_convergence.png")
 
     slope = figure_error_scaling(rng)
-    print(f"Saved results/figures/02_error_scaling.png  (fitted log-log slope = {slope:.4f}, theory -0.5)")
+    print(
+        "Saved results/figures/02_error_scaling.png  "
+        f"(fitted log-log slope = {slope:.4f}, theory -0.5)"
+    )
 
     coverage = coverage_check(rng)
     print(f"95% CI coverage over 2,000 runs with n=10,000: {coverage:.2%}")

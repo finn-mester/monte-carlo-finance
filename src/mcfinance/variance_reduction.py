@@ -20,8 +20,8 @@ from __future__ import annotations
 
 import dataclasses
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 
@@ -98,6 +98,7 @@ def control_variate_estimate(
 
 
 def _check_even(n: int) -> None:
+    """Raise ValueError unless n is an even number >= 4."""
     if n < 4 or n % 2 != 0:
         raise ValueError(f"n must be an even number >= 4 for antithetic sampling, got {n}")
 
@@ -136,6 +137,11 @@ def price_european_antithetic(
 
     n (even) payoffs are evaluated from n/2 normal draws: each Z is used once
     as Z and once as -Z, and the two payoffs of a pair are averaged.
+
+    Returns
+    -------
+    MCResult whose n is the total number of payoff evaluations and whose
+    standard error is computed from the n/2 pair averages.
     """
     S_plus, S_minus = _antithetic_pairs(S0, r, sigma, T, n, q, rng)
     disc = np.exp(-r * T)
@@ -167,6 +173,10 @@ def price_european_control_variate(
     Control variate Y = e^{-rT} S_T. Under the risk-neutral measure the
     discounted asset (with dividends reinvested) is a martingale, so
     E[Y] = S0 e^{-qT} exactly. Beta is estimated from the same sample.
+
+    Returns
+    -------
+    ControlVariateResult (price, standard error, n, beta, rho).
     """
     if n < 2:
         raise ValueError(f"n must be at least 2 to estimate a standard error, got {n}")
@@ -198,6 +208,10 @@ def price_european_combined(
     observations are the n/2 i.i.d. pairs (X_pair, Y_pair) with
     X_pair = (X(Z) + X(-Z)) / 2 and Y_pair = (Y(Z) + Y(-Z)) / 2. Y_pair still
     has the known expectation S0 e^{-qT}.
+
+    Returns
+    -------
+    ControlVariateResult with n = total number of payoff evaluations.
     """
     S_plus, S_minus = _antithetic_pairs(S0, r, sigma, T, n, q, rng)
     disc = np.exp(-r * T)
@@ -241,6 +255,10 @@ def time_per_call(
     The estimator is called n_calls times in a row, this block is repeated
     n_repeats times, and the fastest block is kept (as Python's timeit does):
     the minimum is the measurement least affected by other processes.
+
+    Returns
+    -------
+    Seconds per call (float).
     """
     rng = _get_rng(rng)
     timings = []

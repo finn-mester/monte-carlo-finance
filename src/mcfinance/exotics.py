@@ -21,7 +21,7 @@ payoffs are kept, and the mean and standard error are computed at the end.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -75,7 +75,7 @@ def _simulate_in_batches(
         paths = simulate_paths(S0, r, sigma, T, b, n_steps, rng=rng, q=q)
         chunks.append(payoffs_fn(paths))
         remaining -= b
-    return tuple(np.concatenate(parts) for parts in zip(*chunks))
+    return tuple(np.concatenate(parts) for parts in zip(*chunks, strict=True))
 
 
 def price_asian(
@@ -103,6 +103,11 @@ def price_asian(
     exact expectation is geometric_asian_price, and beta is estimated from the
     sample exactly as in Part 2. The result is then a ControlVariateResult,
     which also exposes the sample correlation rho.
+
+    Returns
+    -------
+    MCResult (price in the currency unit of S0 and K, standard error, n), or a
+    ControlVariateResult (also beta and rho) when control_variate=True.
     """
     if average not in ("arithmetic", "geometric"):
         raise ValueError(f"average must be 'arithmetic' or 'geometric', got {average!r}")
@@ -113,6 +118,7 @@ def price_asian(
     disc = np.exp(-r * T)
 
     def payoffs_fn(paths: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Per-path discounted payoffs for one batch of paths."""
         arithmetic, geometric = path_averages(paths)
         A = arithmetic if average == "arithmetic" else geometric
         X = disc * payoff(A, K, option)
@@ -156,6 +162,11 @@ def price_barrier(
     monitoring date has S_{t_i} <= H. The payoff is the vanilla call payoff
     max(S_T - K, 0) times the knock-out or knock-in indicator. Since the two
     indicators sum to 1 on every path, down-and-in + down-and-out = vanilla.
+
+    Returns
+    -------
+    MCResult with the price of the discretely monitored contract. Raises
+    ValueError if H >= S0 (already knocked out) or for an unsupported kind.
     """
     if kind not in ("down-and-out", "down-and-in"):
         raise ValueError(f"kind must be 'down-and-out' or 'down-and-in', got {kind!r}")
@@ -164,10 +175,13 @@ def price_barrier(
     if H <= 0:
         raise ValueError(f"H must be positive, got {H}")
     if H >= S0:
-        raise ValueError(f"H = {H} >= S0 = {S0}: a down barrier at or above the spot is already hit")
+        raise ValueError(
+            f"H = {H} >= S0 = {S0}: a down barrier at or above the spot is already hit"
+        )
     disc = np.exp(-r * T)
 
     def payoffs_fn(paths: np.ndarray) -> tuple[np.ndarray]:
+        """Per-path discounted payoffs for one batch of paths."""
         monitored = paths[:, 1:]
         hit = (monitored <= H).any(axis=1)
         vanilla = disc * payoff(monitored[:, -1], K, "call")

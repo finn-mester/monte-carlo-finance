@@ -57,7 +57,9 @@ def test_geometric_average_expectation_matches_simulation():
 @pytest.mark.parametrize("option", ["call", "put"])
 def test_mc_geometric_asian_matches_closed_form(option):
     m = 52
-    result = price_asian(S0, K, R, SIGMA, T, 200_000, m, option=option, average="geometric", rng=SEED)
+    result = price_asian(
+        S0, K, R, SIGMA, T, 200_000, m, option=option, average="geometric", rng=SEED
+    )
     exact = geometric_asian_price(S0, K, R, SIGMA, T, m, option)
     assert abs(result.price - exact) < 4 * result.std_error
 
@@ -131,17 +133,23 @@ def _down_and_out_by_integration(S0, K, H, r, sigma, T, q=0.0):
     b = np.log(H / S0)
 
     def density(x):
-        return norm.pdf(x, mu * T, s) - np.exp(2 * mu * b / sigma**2) * norm.pdf(x - 2 * b, mu * T, s)
+        return norm.pdf(x, mu * T, s) - np.exp(2 * mu * b / sigma**2) * norm.pdf(
+            x - 2 * b, mu * T, s
+        )
 
     lower = np.log(K / S0)  # since H <= K, the payoff region lies above the barrier
     value, _ = quad(lambda x: (S0 * np.exp(x) - K) * density(x), lower, lower + 12 * s, limit=200)
     return np.exp(-r * T) * value
 
 
-@pytest.mark.parametrize("barrier, strike, q", [(90.0, 100.0, 0.0), (80.0, 100.0, 0.0), (95.0, 110.0, 0.03)])
+@pytest.mark.parametrize(
+    "barrier, strike, q", [(90.0, 100.0, 0.0), (80.0, 100.0, 0.0), (95.0, 110.0, 0.03)]
+)
 def test_barrier_formula_matches_reflection_principle(barrier, strike, q):
     closed = barrier_closed_form(S0, strike, barrier, R, SIGMA, T, "down-and-out", q=q)
-    assert closed == pytest.approx(_down_and_out_by_integration(S0, strike, barrier, R, SIGMA, T, q), abs=1e-8)
+    assert closed == pytest.approx(
+        _down_and_out_by_integration(S0, strike, barrier, R, SIGMA, T, q), abs=1e-8
+    )
 
 
 def test_barrier_in_out_parity_and_limits():

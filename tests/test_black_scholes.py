@@ -28,7 +28,7 @@ def test_put_call_parity(strike, q):
 def test_call_increasing_in_volatility():
     vols = [0.05, 0.1, 0.2, 0.3, 0.5]
     prices = [bs_price(S0, K, R, v, T, "call") for v in vols]
-    assert all(a < b for a, b in zip(prices, prices[1:]))
+    assert np.all(np.diff(prices) > 0)
 
 
 @pytest.mark.parametrize(

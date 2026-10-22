@@ -19,3 +19,11 @@ venv/
 
 # Market data (Yahoo Finance, not redistributed; regenerate with scripts/download_data.py)
 data/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.log
+
+# Private notes (interview preparation), never committed
+notes/

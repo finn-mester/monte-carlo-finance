@@ -37,8 +37,7 @@ def test_confidence_interval_coverage():
     exact = bs_price(S0, K, R, SIGMA, T, "call")
     n_reps = 500
     hits = sum(
-        price_european(S0, K, R, SIGMA, T, n=5_000, rng=rng).contains(exact)
-        for _ in range(n_reps)
+        price_european(S0, K, R, SIGMA, T, n=5_000, rng=rng).contains(exact) for _ in range(n_reps)
     )
     assert 0.92 <= hits / n_reps <= 0.98
 
@@ -75,9 +74,7 @@ def test_n_equal_one_raises():
         price_european(S0, K, R, SIGMA, T, n=1)
 
 
-@pytest.mark.parametrize(
-    "kwargs", [dict(S0=0.0), dict(sigma=-0.1), dict(T=0.0)]
-)
+@pytest.mark.parametrize("kwargs", [dict(S0=0.0), dict(sigma=-0.1), dict(T=0.0)])
 def test_simulator_rejects_invalid_inputs(kwargs):
     params = dict(S0=S0, r=R, sigma=SIGMA, T=T, n=10)
     params.update(kwargs)

@@ -21,6 +21,7 @@ BGK_BETA = 0.5826
 
 
 def _validate_common(S0: float, K: float, sigma: float, T: float) -> None:
+    """Raise ValueError unless S0, K, sigma and T are positive."""
     if S0 <= 0 or K <= 0:
         raise ValueError("S0 and K must be positive")
     if sigma <= 0:
@@ -45,6 +46,10 @@ def geometric_average_params(
 
     For m = 1 this is ln S_T itself: mu_G = ln S0 + (r - q - sigma^2/2) T and
     var_G = sigma^2 T, so the geometric Asian reduces to the European option.
+
+    Returns
+    -------
+    (mu_G, var_G): mean and variance of ln G.
     """
     if m < 1:
         raise ValueError(f"m must be at least 1, got {m}")
@@ -56,7 +61,12 @@ def geometric_average_params(
 def geometric_average_expectation(
     S0: float, r: float, sigma: float, T: float, m: int, q: float = 0.0
 ) -> float:
-    """Exact E[G] = exp(mu_G + var_G / 2) under the risk-neutral measure."""
+    """Exact E[G] = exp(mu_G + var_G / 2) under the risk-neutral measure.
+
+    Returns
+    -------
+    E[G], in the currency unit of S0.
+    """
     mu_G, var_G = geometric_average_params(S0, r, sigma, T, m, q)
     return float(np.exp(mu_G + 0.5 * var_G))
 
@@ -82,6 +92,10 @@ def geometric_asian_price(
 
     This price is also the exact expectation of the discounted geometric
     payoff, which is what the control variate in exotics.price_asian needs.
+
+    Returns
+    -------
+    The option price (currency unit of S0 and K).
     """
     if option not in ("call", "put"):
         raise ValueError(f"option must be 'call' or 'put', got {option!r}")
@@ -122,6 +136,10 @@ def barrier_closed_form(
     Reference: J. Hull, Options, Futures, and Other Derivatives, chapter on
     exotic options. The tests check it independently by integrating the
     payoff against the absorbed density given by the reflection principle.
+
+    Returns
+    -------
+    The price of the continuously monitored down-and-in or down-and-out call.
     """
     if kind not in ("down-and-out", "down-and-in"):
         raise ValueError(f"kind must be 'down-and-out' or 'down-and-in', got {kind!r}")
@@ -129,7 +147,9 @@ def barrier_closed_form(
     if H <= 0:
         raise ValueError(f"H must be positive, got {H}")
     if H >= S0:
-        raise ValueError(f"H = {H} >= S0 = {S0}: a down barrier at or above the spot is already hit")
+        raise ValueError(
+            f"H = {H} >= S0 = {S0}: a down barrier at or above the spot is already hit"
+        )
     if H > K:
         raise ValueError(
             f"H = {H} > K = {K}: this closed form is only valid for a down barrier "
@@ -140,9 +160,9 @@ def barrier_closed_form(
     lam = (r - q + 0.5 * sigma**2) / sigma**2
     y = np.log(H**2 / (S0 * K)) / (sigma * sqrt_T) + lam * sigma * sqrt_T
 
-    down_in = S0 * np.exp(-q * T) * (H / S0) ** (2 * lam) * norm.cdf(y) - K * np.exp(
-        -r * T
-    ) * (H / S0) ** (2 * lam - 2) * norm.cdf(y - sigma * sqrt_T)
+    down_in = S0 * np.exp(-q * T) * (H / S0) ** (2 * lam) * norm.cdf(y) - K * np.exp(-r * T) * (
+        H / S0
+    ) ** (2 * lam - 2) * norm.cdf(y - sigma * sqrt_T)
 
     if kind == "down-and-in":
         return float(down_in)
@@ -163,6 +183,10 @@ def bgk_adjusted_barrier(
 
     Pricing with the continuous formula at H_eff approximates the discrete
     price with an error of order o(1/sqrt(m)).
+
+    Returns
+    -------
+    The shifted barrier H_eff to use in the continuous formula.
     """
     if m < 1:
         raise ValueError(f"m must be at least 1, got {m}")
