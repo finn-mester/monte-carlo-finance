@@ -6,6 +6,10 @@
 
 A from-scratch Python library and study of Monte Carlo methods for derivatives pricing and market risk. It covers European options, variance reduction, path-dependent exotics, and VaR and Expected Shortfall on real market data. The guiding principle: **every Monte Carlo result is validated against a closed-form benchmark or a statistical test, reported with a confidence interval or its sampling uncertainty, and covered by automated tests** (115 tests, all offline). A Monte Carlo number without an error bar is not a result.
 
+## About this project
+
+This is a learning project. The code and documentation were written with the help of an AI assistant (Claude, by Anthropic). I directed the work and I am studying the theory behind each part.
+
 ## Key results
 
 - **Pricing is validated against Black-Scholes.** With 1,000,000 paths the MC call price is 10.4578 (standard error 0.0147, 95% CI [10.4289, 10.4866]), against an exact price of 10.4506. The empirical error decays with slope -0.4983 (theory: -0.5), and 95.10% of 2,000 independent 95% confidence intervals contain the exact price.
