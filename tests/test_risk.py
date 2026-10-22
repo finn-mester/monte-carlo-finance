@@ -174,7 +174,7 @@ def test_student_t_requires_nu_above_two():
 # ---------------------------------------------------------------------------
 def test_historical_is_empirical_quantile():
     returns = np.random.default_rng(SEED).standard_t(4, size=(1_000, 3)) * 0.01
-    res = historical(returns, W3, V, use_mean=True)
+    res = historical(returns, W3, V)
     losses = -V * (np.expm1(returns) @ W3)
     for alpha in LEVELS:
         assert res.var[alpha] == pytest.approx(np.quantile(losses, alpha))
@@ -182,6 +182,18 @@ def test_historical_is_empirical_quantile():
         assert res.var[alpha] > 0  # a loss is a positive number
     # A portfolio that only gains has negative losses.
     assert np.all(portfolio_losses(np.full((5, 3), 0.01), W3, V) < 0)
+
+
+def test_historical_uses_raw_returns_regardless_of_use_mean():
+    # Historical simulation is defined on the raw returns: the use_mean flag
+    # of estimate_risk must not demean them.
+    returns = 0.002 + np.random.default_rng(SEED).standard_normal((500, 3)) * 0.01
+    raw = historical(returns, W3, V)
+    for flag in (False, True):
+        res = estimate_risk("historical", returns, W3, V, use_mean=flag)
+        assert res == raw
+    demeaned = historical(returns - returns.mean(axis=0), W3, V)
+    assert raw.var[0.99] < demeaned.var[0.99]  # a positive drift lowers the losses
 
 
 def test_ewma_weights_recent_returns_more():

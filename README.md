@@ -312,7 +312,7 @@ Daily **log** returns $r_i$ are modelled, but the portfolio P&L is computed exac
 
 $$L = -V\sum_{i} w_i\,\big(e^{r_i} - 1\big).$$
 
-The mean return is set to zero by default (`use_mean=False`). At a 1-day horizon it is negligible next to the volatility, and estimating it adds noise. For an $h$-day horizon the covariance is scaled by $h$ (square-root-of-time rule). **This is an approximation**: it assumes i.i.d. returns, which volatility clustering contradicts.
+The mean return is set to zero by default (`use_mean=False`) in the parametric and Monte Carlo engines. At a 1-day horizon it is negligible next to the volatility, and estimating it adds noise. For an $h$-day horizon the covariance is scaled by $h$ (square-root-of-time rule). **This is an approximation**: it assumes i.i.d. returns, which volatility clustering contradicts.
 
 ### Methods
 
@@ -322,7 +322,7 @@ The mean return is set to zero by default (`use_mean=False`). At a 1-day horizon
    $$\mathrm{VaR}_\alpha = V\,(z_\alpha\sigma_p - \mu_p), \qquad \mathrm{ES}_\alpha = V\Big(\sigma_p\,\frac{\varphi(z_\alpha)}{1-\alpha} - \mu_p\Big).$$
 2. **Monte Carlo normal.** $x = Lz$ through Cholesky, with each scenario revalued exactly.
 3. **Monte Carlo Student-t** ($\nu = 5$ by default). $x = \sqrt{\tfrac{\nu-2}{\nu}}\,\dfrac{Lz}{\sqrt{W}}$, with $W \sim \chi^2_\nu/\nu$. The vector $Lz/\sqrt{W}$ has covariance $\Sigma\,\nu/(\nu-2)$, and the factor $\sqrt{(\nu-2)/\nu}$ brings it back to exactly $\Sigma$. The normal and t models therefore share variances and correlations and differ only in shape. Because a single $W$ scales all assets, a "turbulent" scenario (small $W$) hits every stock at once. This is **tail dependence**, which the multivariate normal does not have.
-4. **Historical simulation.** Apply each of the last 500 days of actual returns to today's portfolio and take the empirical quantile and tail mean. Nothing is simulated or assumed.
+4. **Historical simulation.** Apply each of the last 500 days of actual (raw, not demeaned) returns to today's portfolio and take the empirical quantile and tail mean. Nothing is simulated or assumed, and the `use_mean` flag does not apply.
 5. **Monte Carlo normal with EWMA covariance** (RiskMetrics, $\lambda = 0.94$). Same as 2, but the covariance is $\Sigma = \sum_k (1-\lambda)\lambda^k\, r_{t-k}r_{t-k}^\top$ (weights rescaled to sum to 1 over the window). Recent days count more, with an effective memory of about $1/(1-\lambda) \approx 17$ days.
 
 **The 95% vs 99% crossover.** A unit-variance $t_5$ has its 95% quantile at $\sqrt{3/5}\times 2.015 = 1.561$, *below* the normal's 1.645. Its 99% quantile is $\sqrt{3/5}\times 3.365 = 2.606$, *above* the normal's 2.326. With the same variance, the t puts more mass in the centre and in the far tails and less in the "shoulders", so it is only riskier far out. A fat-tailed model can therefore give a *lower* 95% VaR and a *higher* 99% VaR than the normal.
@@ -368,7 +368,7 @@ Estimation window: the last 500 days (2024-11-04 to 2026-10-20). 1-day horizon, 
 | MC normal | 16,811 | 21,013 | 19,998 | 23,796 | 23,717 | 27,071 |
 | MC Student-t (nu = 5) | 15,903 | 22,738 | 20,278 | 27,661 | 26,497 | 34,880 |
 | MC normal, EWMA cov. | 13,199 | 16,563 | 15,761 | 18,764 | 18,650 | 21,379 |
-| Historical simulation | 14,974 | 23,988 | 20,325 | 30,665 | 28,411 | 43,581 |
+| Historical simulation | 14,708 | 23,729 | 20,070 | 30,408 | 28,154 | 43,331 |
 
 ![VaR and ES comparison](results/figures/10_var_es_comparison.png)
 
@@ -376,7 +376,7 @@ What the numbers show:
 
 - **MC normal reproduces the closed form, up to linearisation.** The MC normal 99% VaR (23,717) is 1.8% below the parametric one (24,152). Across 100 repetitions, the standard deviation of the MC estimate is only 54.5 EUR, so this gap is not noise. It comes from the closed form's linear P&L. Since $e^{r} - 1 > r$, a stock that falls loses slightly less than the linear approximation says, and the exact revaluation in the Monte Carlo captures this.
 - **The Student-t crossover appears on real data.** Compared with the normal (same covariance), the t model gives a *lower* 95% VaR (15,903 vs 16,811) and a *higher* 99% VaR (26,497 vs 23,717). Its ES is higher at every level, because ES looks into the tail itself.
-- **Historical simulation gives the largest 99% VaR and ES** (28,411 and 43,581). The window contains a cluster of large losses in spring 2025 (Figure 12), which no normal model with the same variance reproduces. Its 99% ES is 1.53 times its VaR, against 1.14 for the normal model: the empirical tail beyond the VaR is much heavier.
+- **Historical simulation gives the largest 99% VaR and ES** (28,154 and 43,331). The window contains a cluster of large losses in spring 2025 (Figure 12), which no normal model with the same variance reproduces. Its 99% ES is 1.54 times its VaR, against 1.14 for the normal model: the empirical tail beyond the VaR is much heavier.
 - **EWMA gives the lowest risk** (18,650 at 99%): the most recent weeks were calmer than the two-year average.
 
 **10-day 99% VaR and ES** (covariance $\times 10$; historical simulation scaled by $\sqrt{10}$):
@@ -387,7 +387,7 @@ What the numbers show:
 | MC normal | 72,425 | 82,523 |
 | MC Student-t (nu = 5) | 80,450 | 104,370 |
 | MC normal, EWMA cov. | 57,221 | 65,362 |
-| Historical simulation x sqrt(10) | 89,842 | 137,816 |
+| Historical simulation x sqrt(10) | 89,031 | 137,025 |
 
 The parametric 10-day VaR is exactly $\sqrt{10}$ times the 1-day value. The MC normal 10-day VaR (72,425) is below $\sqrt{10} \times 23{,}717 \approx 75{,}000$, because the convexity of $e^r - 1$ grows with the size of the moves.
 
@@ -443,22 +443,22 @@ Rolling 1-day forecasts from 2013-12-18 to 2026-10-20 (3,285 days). Each forecas
 | MC normal | 99% | 72 | 32.9 | 2.19% | <0.0001 | 0.0002 | <0.0001 | 1 (green) | 39,731 | 31,080 |
 | MC Student-t (nu = 5) | 99% | 48 | 32.9 | 1.46% | 0.0129 | <0.0001 | <0.0001 | 1 (green) | 45,811 | 40,074 |
 | MC normal, EWMA cov. | 99% | 75 | 32.9 | 2.28% | <0.0001 | 0.0351 | <0.0001 | 5 (yellow) | 34,258 | 28,405 |
-| Historical simulation | 99% | 50 | 32.9 | 1.52% | 0.0052 | <0.0001 | <0.0001 | 1 (green) | 43,135 | 42,534 |
+| Historical simulation | 99% | 51 | 32.9 | 1.55% | 0.0032 | 0.0001 | <0.0001 | 2 (green) | 42,739 | 42,226 |
 | Parametric normal | 95% | 150 | 164.3 | 4.57% | 0.2473 | <0.0001 | <0.0001 | 7 | 30,533 | 24,054 |
 | MC normal | 95% | 155 | 164.3 | 4.72% | 0.4549 | <0.0001 | <0.0001 | 7 | 30,117 | 23,522 |
 | MC Student-t (nu = 5) | 95% | 174 | 164.3 | 5.30% | 0.4393 | <0.0001 | <0.0001 | 8 | 28,939 | 25,455 |
 | MC normal, EWMA cov. | 95% | 194 | 164.3 | 5.91% | 0.0204 | <0.0001 | <0.0001 | 13 | 25,306 | 21,384 |
-| Historical simulation | 95% | 167 | 164.3 | 5.08% | 0.8262 | <0.0001 | <0.0001 | 10 | 29,604 | 27,961 |
+| Historical simulation | 95% | 176 | 164.3 | 5.36% | 0.3522 | <0.0001 | <0.0001 | 10 | 28,975 | 27,513 |
 
 ![Backtest](results/figures/12_backtest_99.png)
 
 **Discussion.**
 
-- **No model passes at 99%.** Every 99% VaR has too many exceptions, and Kupiec rejects all five at the 5% level. The normal models are worst (63 and 72 exceptions against 32.9 expected). The fat-tailed models come closest: Student-t 48 (p = 0.0129) and historical 50 (p = 0.0052).
+- **No model passes at 99%.** Every 99% VaR has too many exceptions, and Kupiec rejects all five at the 5% level. The normal models are worst (63 and 72 exceptions against 32.9 expected). The fat-tailed models come closest: Student-t 48 (p = 0.0129) and historical 51 (p = 0.0032).
 - **At 95%, the exception rate is fine for four models out of five.** Kupiec does not reject the parametric normal, MC normal, Student-t or historical models; it does reject EWMA (p = 0.0204). This matches the crossover: the normal is only too thin in the far tail. At 95% the Student-t has *more* exceptions than the normal (174 vs 155), exactly as its lower 95% VaR predicts.
 - **Every model fails the independence test, at both levels.** Exceptions cluster in stress periods: the MC normal model has 17 of its 72 exceptions in 2020 and 13 in 2015, against 0 in 2017. This is **volatility clustering**: calm and turbulent periods alternate, and a 500-day equally weighted window reacts slowly to both. It underestimates risk when a crisis starts and overestimates it afterwards. Figure 12 shows the reverse "ghost" effect: the equally weighted VaR drops sharply in early 2022, when the March 2020 crash leaves the 500-day window, without anything happening in the market that day.
 - **EWMA reduces clustering but does not fix the tails.** With a 17-day memory, EWMA has fewer back-to-back exceptions than the MC normal model (5 pairs of consecutive exceptions vs 8). Its independence p-value rises from 0.0002 to 0.0351, still a rejection at 5%. But it has the *most* exceptions (75 at 99%, 194 at 95%). EWMA fixes the *level* of volatility but keeps a normal *shape*: after calm stretches its forecast volatility is low, and the conditional tails are still thinner than reality. Combining EWMA with fat tails (Student-t innovations or filtered historical simulation) would address both problems; it is not implemented here.
-- **The normal ES is too optimistic.** On 99% exception days, the average realised loss exceeds the average predicted ES for every model: 39,731 vs 31,080 for the MC normal, 45,811 vs 40,074 for the Student-t, and only 43,135 vs 42,534 for historical simulation. Historical simulation is the only model whose ES is close to what actually happened in the tail.
+- **The normal ES is too optimistic.** On 99% exception days, the average realised loss exceeds the average predicted ES for every model: 39,731 vs 31,080 for the MC normal, 45,811 vs 40,074 for the Student-t, and only 42,739 vs 42,226 for historical simulation. Historical simulation is the only model whose ES is close to what actually happened in the tail.
 - **The parametric and MC normal models differ in the backtest** (63 vs 72 exceptions) even though their VaRs differ by only about 2% (exact P&L, plus the noise of 20,000 scenarios). Near the 99% quantile, small changes in VaR move the exception count noticeably.
 - **The traffic light over the last 250 days is green for all models except EWMA** (5 exceptions, yellow). Taken alone, that window would hide the problems that the full 13-year backtest reveals.
 

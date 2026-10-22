@@ -12,7 +12,8 @@ Conventions
 - By default the mean return is set to ZERO (use_mean=False). At a 1-day
   horizon the mean is tiny compared with the volatility, and estimating it
   from data adds noise rather than information. use_mean=True uses the sample
-  mean of the estimation window instead.
+  mean of the estimation window instead. The flag only affects the parametric
+  and Monte Carlo engines: historical simulation always uses the raw returns.
 - Horizon h days: mean and covariance are scaled by h. This assumes i.i.d.
   daily returns (square-root-of-time rule for the volatility), which is only
   an approximation: real returns show volatility clustering.
@@ -252,18 +253,15 @@ def historical(
     weights: Sequence[float],
     value: float,
     levels: Sequence[float] = LEVELS,
-    use_mean: bool = False,
 ) -> RiskResult:
     """Historical simulation: VaR and ES of the losses the window actually produced.
 
-    No distribution is assumed and nothing is simulated: each past day's
-    returns are applied to today's portfolio. With use_mean=False (default,
-    consistent with the other engines) each asset's sample mean over the
-    window is removed first; with use_mean=True the returns are used as they are.
+    No distribution is assumed and nothing is simulated: each past day's RAW
+    returns (not demeaned, the standard definition) are applied to today's
+    portfolio, and VaR and ES are the empirical quantile and tail mean of the
+    resulting losses.
     """
     r = np.asarray(log_returns, dtype=float)
-    if not use_mean:
-        r = r - r.mean(axis=0)
     return var_es_from_losses(portfolio_losses(r, weights, value), levels)
 
 
@@ -287,13 +285,15 @@ def estimate_risk(
     method: "parametric_normal", "mc_normal", "mc_student_t",
     "mc_normal_ewma" or "historical". The covariance is the equal-weighted
     sample covariance of the window, except for mc_normal_ewma (EWMA, lam).
+    use_mean only affects the parametric and Monte Carlo engines; historical
+    simulation always uses the raw returns.
     """
     r = np.asarray(log_returns, dtype=float)
     mu = r.mean(axis=0) if use_mean else None
     if method == "historical":
         if horizon != 1:
             raise ValueError("historical simulation is implemented for a 1-day horizon only")
-        return historical(r, weights, value, levels, use_mean=use_mean)
+        return historical(r, weights, value, levels)
     if method == "mc_normal_ewma":
         cov = ewma_covariance(r, lam)
     else:
