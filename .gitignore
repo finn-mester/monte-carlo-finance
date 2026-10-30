@@ -1,9 +1,6 @@
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-build/
-dist/
 
 # Environments
 .venv/
@@ -17,13 +14,8 @@ venv/
 .idea/
 .DS_Store
 
-# Market data (Yahoo Finance, not redistributed; regenerate with scripts/download_data.py)
+# Market data (Yahoo Finance, not redistributed; 04_var_es.ipynb downloads it)
 data/
-.ruff_cache/
-.mypy_cache/
-.coverage
-htmlcov/
-*.log
 
-# Private notes (interview preparation), never committed
+# Private notes, never committed
 notes/

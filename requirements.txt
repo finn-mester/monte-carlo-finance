@@ -1,3 +1,7 @@
-# Same as `pip install -e ".[dev,data,notebook]"`: the package, test/lint tools,
-# the Yahoo Finance downloader and the notebook tooling.
--e .[dev,data,notebook]
+numpy
+scipy
+pandas
+matplotlib
+yfinance
+jupyter
+pytest
